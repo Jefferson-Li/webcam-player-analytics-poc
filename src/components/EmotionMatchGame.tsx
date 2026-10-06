@@ -9,6 +9,7 @@ import {
   type FaceSnapshot,
 } from "@/lib/face";
 import { getOrCreatePlayerId } from "@/lib/player";
+import { useI18n } from "@/lib/i18n/context";
 import type { ExpressionName } from "@/lib/types";
 
 type GamePhase =
@@ -42,17 +43,21 @@ const PROMPTS: ExpressionName[] = [
   "fearful",
 ];
 
-const PROMPT_LABELS: Record<ExpressionName, string> = {
-  neutral: "平靜",
-  happy: "開心 😊",
-  sad: "難過 😢",
-  angry: "生氣 😠",
-  fearful: "害怕 😨",
-  disgusted: "厭惡 🤢",
-  surprised: "驚訝 😮",
+const PROMPT_EMOJI: Record<ExpressionName, string> = {
+  neutral: "",
+  happy: "😊",
+  sad: "😢",
+  angry: "😠",
+  fearful: "😨",
+  disgusted: "🤢",
+  surprised: "😮",
 };
 
 export function EmotionMatchGame() {
+  const { t, format } = useI18n();
+  const i18nRef = useRef({ t, format });
+  i18nRef.current = { t, format };
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -146,7 +151,7 @@ export function EmotionMatchGame() {
       setPhase("ready");
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "無法啟動攝影機或模型";
+        err instanceof Error ? err.message : t.emotionMatch.cameraError;
       setError(message);
       setPhase("error");
     }
@@ -221,14 +226,20 @@ export function EmotionMatchGame() {
       }
 
       // Prompt banner
+      const { t: dict } = i18nRef.current;
+      const promptLabel = `${dict.expressions[promptRef.current]}${
+        PROMPT_EMOJI[promptRef.current]
+          ? ` ${PROMPT_EMOJI[promptRef.current]}`
+          : ""
+      }`;
       ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
       ctx.fillRect(16, 16, Math.min(w - 32, 360), 64);
       ctx.fillStyle = "#e2e8f0";
       ctx.font = "600 14px ui-sans-serif, system-ui";
-      ctx.fillText("請做出表情", 28, 40);
+      ctx.fillText(dict.emotionMatch.promptBanner, 28, 40);
       ctx.font = "700 22px ui-sans-serif, system-ui";
       ctx.fillStyle = "#fbbf24";
-      ctx.fillText(PROMPT_LABELS[promptRef.current], 28, 68);
+      ctx.fillText(promptLabel, 28, 68);
 
       if (matchProgress > 0) {
         ctx.fillStyle = "rgba(52, 211, 153, 0.25)";
@@ -279,7 +290,7 @@ export function EmotionMatchGame() {
 
     if (!avg) {
       setResultSummary(
-        `得分 ${scoreRef.current}，但未穩定偵測到臉部，未上傳分析資料。`,
+        format(t.emotionMatch.noFaceUpload, { score: scoreRef.current }),
       );
       setPhase("done");
       return;
@@ -301,13 +312,17 @@ export function EmotionMatchGame() {
           durationMs,
         }),
       });
-      if (!res.ok) throw new Error("上傳失敗");
+      if (!res.ok) throw new Error("upload failed");
       setResultSummary(
-        `配對成功 ${scoreRef.current} 次｜估測約 ${Math.round(avg.age)} 歲｜${avg.gender === "male" ? "男性" : "女性"}`,
+        format(t.emotionMatch.result, {
+          score: scoreRef.current,
+          age: Math.round(avg.age),
+          gender: avg.gender === "male" ? t.common.male : t.common.female,
+        }),
       );
       setPhase("done");
     } catch {
-      setError("遊戲結束，但分析資料上傳失敗");
+      setError(t.emotionMatch.uploadFail);
       setPhase("error");
     }
   }
@@ -317,19 +332,19 @@ export function EmotionMatchGame() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300/80">
-            Webcam Mini Game
+            {t.emotionMatch.eyebrow}
           </p>
           <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl text-white sm:text-4xl">
-            Emotion Match
+            {t.emotionMatch.title}
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
-            跟隨畫面提示做出表情，維持約 0.7 秒即得分。同樣會估測年齡／性別並上傳匿名統計。
+            {t.emotionMatch.description}
           </p>
         </div>
         <div className="flex gap-3 text-sm">
-          <StatChip label="時間" value={`${timeLeft}s`} />
-          <StatChip label="得分" value={String(score)} />
-          <StatChip label="目標" value={PROMPT_LABELS[prompt].split(" ")[0]} />
+          <StatChip label={t.common.time} value={`${timeLeft}s`} />
+          <StatChip label={t.common.score} value={String(score)} />
+          <StatChip label={t.common.target} value={t.expressions[prompt]} />
         </div>
       </div>
 
@@ -340,9 +355,7 @@ export function EmotionMatchGame() {
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
         />
-        <span>
-          我了解這是 POC：臉部推斷僅在本機模型執行，上傳的是匿名年齡／性別／表情估計與分數，非真實身分資料。
-        </span>
+        <span>{t.common.consent}</span>
       </label>
 
       <div className="relative overflow-hidden rounded-2xl border border-amber-400/25 bg-slate-950 shadow-[0_0_60px_rgba(251,191,36,0.12)]">
@@ -358,13 +371,15 @@ export function EmotionMatchGame() {
             <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 p-6 text-center">
               <div>
                 <p className="font-[family-name:var(--font-display)] text-2xl text-white">
-                  {phase === "loading" ? "載入模型與攝影機…" : "準備開始"}
+                  {phase === "loading"
+                    ? t.common.loadingCamera
+                    : t.common.ready}
                 </p>
                 {error ? (
                   <p className="mt-2 text-sm text-rose-300">{error}</p>
                 ) : (
                   <p className="mt-2 text-sm text-slate-400">
-                    做對提示表情並維持片刻即可得分
+                    {t.emotionMatch.overlayHint}
                   </p>
                 )}
               </div>
@@ -376,11 +391,15 @@ export function EmotionMatchGame() {
           <div className="text-xs text-slate-400">
             {live ? (
               <span>
-                即時：約 {live.age} 歲 ·{" "}
-                {live.gender === "male" ? "男性" : "女性"} · {live.expression}
+                {t.common.livePrefix}: ~{live.age}
+                {t.common.yearsOld} ·{" "}
+                {live.gender === "male" ? t.common.male : t.common.female} ·{" "}
+                {t.expressions[
+                  live.expression as keyof typeof t.expressions
+                ] ?? live.expression}
               </span>
             ) : (
-              <span>等待臉部偵測…</span>
+              <span>{t.common.waitingFace}</span>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -391,7 +410,7 @@ export function EmotionMatchGame() {
                 onClick={() => void startCamera()}
                 className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {phase === "done" ? "再開一局" : "開啟攝影機"}
+                {phase === "done" ? t.common.playAgain : t.common.openCamera}
               </button>
             )}
             {phase === "ready" && (
@@ -400,7 +419,7 @@ export function EmotionMatchGame() {
                 onClick={startRound}
                 className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
               >
-                開始 30 秒
+                {t.common.start30s}
               </button>
             )}
             {phase === "playing" && (
@@ -409,11 +428,13 @@ export function EmotionMatchGame() {
                 onClick={() => void finishRound()}
                 className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10"
               >
-                提前結束
+                {t.common.endEarly}
               </button>
             )}
             {phase === "submitting" && (
-              <span className="text-sm text-amber-200">上傳分析中…</span>
+              <span className="text-sm text-amber-200">
+                {t.common.uploading}
+              </span>
             )}
           </div>
         </div>
@@ -426,7 +447,7 @@ export function EmotionMatchGame() {
             href="/admin"
             className="underline decoration-emerald-300/60 underline-offset-2"
           >
-            前往後台看圖表 →
+            {t.common.viewAdmin}
           </a>
         </p>
       ) : null}

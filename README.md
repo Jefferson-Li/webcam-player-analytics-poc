@@ -63,13 +63,14 @@ docker compose up --build
 安裝依賴或建置時會自動從 `@vladmandic/face-api` 複製：
 
 ```bash
-npm install          # postinstall → copy:models
-npm run copy:models  # 手動同步
+npm run copy:models  # 手動同步（dev / build 也會自動跑）
 ```
 
 需要的檔案：`tiny_face_detector`、`face_landmark_68`、`age_gender`、`face_expression`。
 
-## 安全與 Git
+## 語言切換
+
+導覽列可切換 **中文 / EN**，設定會存在瀏覽器 `localStorage`（`wpa_locale`），前後台同步套用。
 
 請勿將含個資、金鑰、錄影、session dump 的檔案提交到 Git。相關規則已寫在 `.gitignore`，例如：
 

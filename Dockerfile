@@ -4,13 +4,15 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json ./
-RUN npm ci
+# Skip postinstall here — scripts/ is not in this layer yet.
+RUN npm ci --ignore-scripts
 
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# copy:models runs as part of npm run build
 RUN npm run build
 
 FROM node:22-alpine AS runner

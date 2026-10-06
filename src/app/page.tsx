@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function Home() {
+  const { t } = useI18n();
+
   return (
     <div className="relative min-h-full overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,_rgba(34,211,238,0.22),_transparent),radial-gradient(ellipse_50%_40%_at_100%_100%,_rgba(251,191,36,0.12),_transparent)]" />
@@ -20,27 +25,27 @@ export default function Home() {
         <section className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300/90">
-              Proof of Concept
+              {t.home.eyebrow}
             </p>
             <h1 className="mt-4 font-[family-name:var(--font-display)] text-4xl leading-tight tracking-tight text-white sm:text-6xl">
-              Webcam
-              <span className="block text-cyan-300">Player Analytics</span>
+              {t.home.titleLine1}
+              <span className="block text-cyan-300">{t.home.titleLine2}</span>
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-              前台可玩 Face Catch 與 Emotion Match；瀏覽器端估測年齡、性別與表情，後台看耗時、每日用戶與嘗試次數。
+              {t.home.subtitle}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/play"
                 className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
               >
-                進入前台遊戲
+                {t.home.ctaPlay}
               </Link>
               <Link
                 href="/admin"
                 className="rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
               >
-                打開後台分析
+                {t.home.ctaAdmin}
               </Link>
             </div>
           </div>
@@ -52,24 +57,15 @@ export default function Home() {
             <div className="absolute left-[58%] top-[28%] h-4 w-4 animate-pulse rounded-full bg-amber-300 shadow-[0_0_16px_#fbbf24]" />
             <div className="absolute left-[30%] top-[42%] h-3 w-3 animate-pulse rounded-full bg-amber-300/80 delay-150" />
             <div className="absolute bottom-6 left-6 right-6 rounded-xl bg-slate-950/70 px-4 py-3 text-xs text-slate-300 backdrop-blur">
-              本機 TinyFaceDetector · AgeGender · Expression · 無影像上傳
+              {t.home.heroBadge}
             </div>
           </div>
         </section>
 
         <section className="grid gap-6 border-t border-white/10 pt-10 sm:grid-cols-3">
-          <Feature
-            title="兩款 Webcam 遊戲"
-            body="Face Catch 接星星；Emotion Match 跟著提示做表情，各局都會回報耗時。"
-          />
-          <Feature
-            title="分析在瀏覽器"
-            body="face-api 模型於 client 執行，只上傳匿名統計，不保存影片或照片。"
-          />
-          <Feature
-            title="後台遊戲洞察"
-            body="最耗時遊戲、最多嘗試、每日用戶數，以及人口統計圖表。"
-          />
+          <Feature title={t.home.feature1Title} body={t.home.feature1Body} />
+          <Feature title={t.home.feature2Title} body={t.home.feature2Body} />
+          <Feature title={t.home.feature3Title} body={t.home.feature3Body} />
         </section>
       </div>
     </div>

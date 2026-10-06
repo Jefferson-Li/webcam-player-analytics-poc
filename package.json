@@ -7,8 +7,7 @@
     "build": "npm run copy:models && next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "copy:models": "node scripts/copy-face-models.mjs",
-    "postinstall": "node scripts/copy-face-models.mjs"
+    "copy:models": "node scripts/copy-face-models.mjs"
   },
   "dependencies": {
     "@vladmandic/face-api": "^1.7.15",

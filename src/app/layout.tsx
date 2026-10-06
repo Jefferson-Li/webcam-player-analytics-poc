@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, IBM_Plex_Sans } from "next/font/google";
+import { AppProviders } from "@/components/AppProviders";
 import "./globals.css";
 
 const display = Space_Grotesk({
@@ -17,7 +18,7 @@ const body = IBM_Plex_Sans({
 export const metadata: Metadata = {
   title: "Webcam Player Analytics POC",
   description:
-    "前台 Webcam 小遊戲 + 後台年齡／性別／表情匿名分析儀表板",
+    "Webcam mini-games + anonymous analytics dashboard (ZH / EN)",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -25,9 +26,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="zh-Hant"
       className={`${display.variable} ${body.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-slate-950 text-slate-100">
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

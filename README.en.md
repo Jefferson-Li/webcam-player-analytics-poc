@@ -63,13 +63,14 @@ The **`.bin` weights and manifests under `public/models/` do not need to be comm
 They are copied from `@vladmandic/face-api` on install / build:
 
 ```bash
-npm install          # postinstall → copy:models
-npm run copy:models  # sync manually
+npm run copy:models  # sync manually (also runs on dev / build)
 ```
 
 Required nets: `tiny_face_detector`, `face_landmark_68`, `age_gender`, `face_expression`.
 
-## Security / Git
+## Language
+
+Use the **中文 / EN** toggle in the nav. The choice is stored in `localStorage` (`wpa_locale`) and applies across player and admin pages.
 
 Do not commit secrets, PII, recordings, or session dumps. `.gitignore` already excludes, among others:
 

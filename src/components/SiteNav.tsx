@@ -1,15 +1,28 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/dictionaries";
 
 export function SiteNav({
   active,
 }: {
   active?: "home" | "play" | "admin";
 }) {
+  const { locale, setLocale, t } = useI18n();
+
   const linkClass = (key: typeof active) =>
     `rounded-lg px-3 py-1.5 text-sm transition ${
       active === key
         ? "bg-white/10 text-white"
         : "text-slate-400 hover:bg-white/5 hover:text-white"
+    }`;
+
+  const langBtn = (code: Locale) =>
+    `rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+      locale === code
+        ? "bg-cyan-400 text-slate-950"
+        : "text-slate-400 hover:bg-white/10 hover:text-white"
     }`;
 
   return (
@@ -19,20 +32,42 @@ export function SiteNav({
           ◈
         </span>
         <span className="font-[family-name:var(--font-display)] text-lg tracking-tight text-white group-hover:text-cyan-100">
-          Webcam Analytics POC
+          {t.nav.brand}
         </span>
       </Link>
-      <nav className="flex items-center gap-1">
-        <Link href="/" className={linkClass("home")}>
-          首頁
-        </Link>
-        <Link href="/play" className={linkClass("play")}>
-          前台遊戲
-        </Link>
-        <Link href="/admin" className={linkClass("admin")}>
-          後台分析
-        </Link>
-      </nav>
+      <div className="flex flex-wrap items-center gap-3">
+        <nav className="flex items-center gap-1">
+          <Link href="/" className={linkClass("home")}>
+            {t.nav.home}
+          </Link>
+          <Link href="/play" className={linkClass("play")}>
+            {t.nav.play}
+          </Link>
+          <Link href="/admin" className={linkClass("admin")}>
+            {t.nav.admin}
+          </Link>
+        </nav>
+        <div
+          className="flex items-center gap-1 rounded-lg border border-white/10 bg-slate-900/70 p-0.5"
+          role="group"
+          aria-label="Language"
+        >
+          <button
+            type="button"
+            className={langBtn("zh")}
+            onClick={() => setLocale("zh")}
+          >
+            {t.nav.langZh}
+          </button>
+          <button
+            type="button"
+            className={langBtn("en")}
+            onClick={() => setLocale("en")}
+          >
+            {t.nav.langEn}
+          </button>
+        </div>
+      </div>
     </header>
   );
 }

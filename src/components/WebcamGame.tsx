@@ -9,6 +9,7 @@ import {
   type FaceSnapshot,
 } from "@/lib/face";
 import { getOrCreatePlayerId } from "@/lib/player";
+import { useI18n } from "@/lib/i18n/context";
 
 type GamePhase = "idle" | "loading" | "ready" | "playing" | "submitting" | "done" | "error";
 
@@ -32,6 +33,7 @@ const ROUND_MS = 30_000;
 const DETECT_INTERVAL_MS = 220;
 
 export function WebcamGame() {
+  const { t, format } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -105,7 +107,7 @@ export function WebcamGame() {
       setPhase("ready");
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "無法啟動攝影機或模型";
+        err instanceof Error ? err.message : t.faceCatch.cameraError;
       setError(message);
       setPhase("error");
     }
@@ -292,7 +294,9 @@ export function WebcamGame() {
     const durationMs = Math.round(performance.now() - startedAtRef.current);
 
     if (!avg) {
-      setResultSummary(`得分 ${scoreRef.current}，但未穩定偵測到臉部，未上傳分析資料。`);
+      setResultSummary(
+        format(t.faceCatch.noFaceUpload, { score: scoreRef.current }),
+      );
       setPhase("done");
       return;
     }
@@ -313,13 +317,22 @@ export function WebcamGame() {
           durationMs,
         }),
       });
-      if (!res.ok) throw new Error("上傳失敗");
+      if (!res.ok) throw new Error("upload failed");
+      const genderLabel =
+        avg.gender === "male" ? t.common.male : t.common.female;
+      const expressionLabel =
+        t.expressions[avg.dominantExpression] ?? avg.dominantExpression;
       setResultSummary(
-        `得分 ${scoreRef.current}｜估測約 ${Math.round(avg.age)} 歲｜${avg.gender === "male" ? "男性" : "女性"}｜表情 ${avg.dominantExpression}`,
+        format(t.faceCatch.result, {
+          score: scoreRef.current,
+          age: Math.round(avg.age),
+          gender: genderLabel,
+          expression: expressionLabel,
+        }),
       );
       setPhase("done");
     } catch {
-      setError("遊戲結束，但分析資料上傳失敗");
+      setError(t.faceCatch.uploadFail);
       setPhase("error");
     }
   }
@@ -329,19 +342,18 @@ export function WebcamGame() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300/80">
-            Webcam Mini Game
+            {t.faceCatch.eyebrow}
           </p>
           <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl text-white sm:text-4xl">
-            Face Catch
+            {t.faceCatch.title}
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
-            用臉去接落下的星星。遊戲期間會在瀏覽器端估測年齡、性別與表情，結束後上傳匿名統計到後台（不存影片）。
-            請正面對鏡頭、光線充足、臉部佔畫面約 1/4 以上，估測會較穩。
+            {t.faceCatch.description}
           </p>
         </div>
         <div className="flex gap-3 text-sm">
-          <StatChip label="時間" value={`${timeLeft}s`} />
-          <StatChip label="得分" value={String(score)} />
+          <StatChip label={t.common.time} value={`${timeLeft}s`} />
+          <StatChip label={t.common.score} value={String(score)} />
         </div>
       </div>
 
@@ -352,9 +364,7 @@ export function WebcamGame() {
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
         />
-        <span>
-          我了解這是 POC：臉部推斷僅在本機模型執行，上傳的是匿名年齡／性別／表情估計與分數，非真實身分資料。
-        </span>
+        <span>{t.common.consent}</span>
       </label>
 
       <div className="relative overflow-hidden rounded-2xl border border-cyan-400/25 bg-slate-950 shadow-[0_0_60px_rgba(34,211,238,0.12)]">
@@ -373,13 +383,15 @@ export function WebcamGame() {
             <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 p-6 text-center">
               <div>
                 <p className="font-[family-name:var(--font-display)] text-2xl text-white">
-                  {phase === "loading" ? "載入模型與攝影機…" : "準備開始"}
+                  {phase === "loading"
+                    ? t.common.loadingCamera
+                    : t.common.ready}
                 </p>
                 {error ? (
                   <p className="mt-2 text-sm text-rose-300">{error}</p>
                 ) : (
                   <p className="mt-2 text-sm text-slate-400">
-                    允許攝影機權限後，對準臉部即可遊玩
+                    {t.faceCatch.overlayHint}
                   </p>
                 )}
               </div>
@@ -391,12 +403,16 @@ export function WebcamGame() {
           <div className="text-xs text-slate-400">
             {live ? (
               <span>
-                即時：約 {live.age} 歲 ·{" "}
-                {live.gender === "male" ? "男性" : "女性"} · {live.expression}
-                {live.confidence < 0.35 ? "（表情不確定）" : ""}
+                {t.common.livePrefix}: ~{live.age}
+                {t.common.yearsOld} ·{" "}
+                {live.gender === "male" ? t.common.male : t.common.female} ·{" "}
+                {t.expressions[
+                  live.expression as keyof typeof t.expressions
+                ] ?? live.expression}
+                {live.confidence < 0.35 ? t.common.expressionUncertain : ""}
               </span>
             ) : (
-              <span>等待臉部偵測…請靠近鏡頭並保持正面</span>
+              <span>{t.common.waitingFace}</span>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -407,7 +423,7 @@ export function WebcamGame() {
                 onClick={() => void startCamera()}
                 className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {phase === "done" ? "再開一局" : "開啟攝影機"}
+                {phase === "done" ? t.common.playAgain : t.common.openCamera}
               </button>
             )}
             {phase === "ready" && (
@@ -416,7 +432,7 @@ export function WebcamGame() {
                 onClick={startRound}
                 className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
               >
-                開始 30 秒
+                {t.common.start30s}
               </button>
             )}
             {phase === "playing" && (
@@ -425,11 +441,11 @@ export function WebcamGame() {
                 onClick={() => void finishRound()}
                 className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10"
               >
-                提前結束
+                {t.common.endEarly}
               </button>
             )}
             {phase === "submitting" && (
-              <span className="text-sm text-cyan-200">上傳分析中…</span>
+              <span className="text-sm text-cyan-200">{t.common.uploading}</span>
             )}
           </div>
         </div>
@@ -438,8 +454,11 @@ export function WebcamGame() {
       {resultSummary ? (
         <p className="rounded-xl border border-emerald-400/30 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-100">
           {resultSummary}{" "}
-          <a href="/admin" className="underline decoration-emerald-300/60 underline-offset-2">
-            前往後台看圖表 →
+          <a
+            href="/admin"
+            className="underline decoration-emerald-300/60 underline-offset-2"
+          >
+            {t.common.viewAdmin}
           </a>
         </p>
       ) : null}

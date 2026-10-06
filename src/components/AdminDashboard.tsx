@@ -23,7 +23,8 @@ import {
   YAxis,
 } from "recharts";
 import { GAME_LABELS } from "@/lib/games";
-import type { AnalyticsStats, GameId } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/context";
+import type { AnalyticsStats, ExpressionName, GameId } from "@/lib/types";
 
 const GENDER_COLORS = { male: "#22d3ee", female: "#f472b6" };
 const EXPRESSION_COLOR = "#fbbf24";
@@ -31,16 +32,6 @@ const AGE_COLOR = "#34d399";
 const GAME_COLORS: Record<GameId, string> = {
   "face-catch": "#22d3ee",
   "emotion-match": "#fbbf24",
-};
-
-const EXPRESSION_LABELS: Record<string, string> = {
-  neutral: "平靜",
-  happy: "開心",
-  sad: "難過",
-  angry: "生氣",
-  fearful: "害怕",
-  disgusted: "厭惡",
-  surprised: "驚訝",
 };
 
 function formatDuration(ms: number): string {
@@ -54,6 +45,7 @@ function formatDuration(ms: number): string {
 }
 
 export function AdminDashboard() {
+  const { t, locale } = useI18n();
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,15 +54,15 @@ export function AdminDashboard() {
     setError(null);
     try {
       const res = await fetch("/api/sessions?view=stats", { cache: "no-store" });
-      if (!res.ok) throw new Error("讀取失敗");
+      if (!res.ok) throw new Error("failed");
       const data = (await res.json()) as AnalyticsStats;
       setStats(data);
     } catch {
-      setError("無法載入分析資料");
+      setError(t.admin.loadError);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t.admin.loadError]);
 
   useEffect(() => {
     void refresh();
@@ -79,13 +71,13 @@ export function AdminDashboard() {
   }, [refresh]);
 
   async function clearAll() {
-    if (!confirm("確定清空所有 session 資料？")) return;
+    if (!confirm(t.admin.clearConfirm)) return;
     await fetch("/api/sessions", { method: "DELETE" });
     await refresh();
   }
 
   if (loading && !stats) {
-    return <p className="text-slate-400">載入儀表板…</p>;
+    return <p className="text-slate-400">{t.admin.loading}</p>;
   }
 
   if (error && !stats) {
@@ -95,24 +87,24 @@ export function AdminDashboard() {
   if (!stats) return null;
 
   const genderData = stats.genderDistribution.map((g) => ({
-    name: g.gender === "male" ? "男性" : "女性",
+    name: g.gender === "male" ? t.common.male : t.common.female,
     key: g.gender,
     value: g.count,
   }));
 
   const expressionData = stats.expressionDistribution.map((e) => ({
-    name: EXPRESSION_LABELS[e.expression] ?? e.expression,
+    name: t.expressions[e.expression as ExpressionName] ?? e.expression,
     count: e.count,
   }));
 
   const attemptsData = stats.gameStats.map((g) => ({
-    name: g.label,
+    name: GAME_LABELS[g.gameId],
     attempts: g.attempts,
     fill: GAME_COLORS[g.gameId],
   }));
 
   const durationData = stats.gameStats.map((g) => ({
-    name: g.label,
+    name: GAME_LABELS[g.gameId],
     minutes: Math.round((g.totalDurationMs / 60000) * 10) / 10,
     fill: GAME_COLORS[g.gameId],
   }));
@@ -122,18 +114,20 @@ export function AdminDashboard() {
     shortDate: d.date.slice(5),
   }));
 
+  const dateLocale = locale === "zh" ? "zh-TW" : "en-US";
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300/80">
-            Analytics Console
+            {t.admin.eyebrow}
           </p>
           <h1 className="mt-1 font-[family-name:var(--font-display)] text-3xl text-white sm:text-4xl">
-            玩家人口統計後台
+            {t.admin.title}
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-300">
-            彙整 Face Catch / Emotion Match 的匿名臉部估計、遊戲耗時、每日用戶與嘗試次數。每 5 秒自動刷新。
+            {t.admin.subtitle}
           </p>
         </div>
         <div className="flex gap-2">
@@ -142,45 +136,53 @@ export function AdminDashboard() {
             onClick={() => void refresh()}
             className="rounded-lg border border-white/15 px-4 py-2 text-sm text-white hover:bg-white/10"
           >
-            立即刷新
+            {t.admin.refresh}
           </button>
           <button
             type="button"
             onClick={() => void clearAll()}
             className="rounded-lg border border-rose-400/40 px-4 py-2 text-sm text-rose-200 hover:bg-rose-950/50"
           >
-            清空資料
+            {t.admin.clear}
           </button>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
-          title="今日用戶"
+          title={t.admin.kpiTodayUsers}
           value={String(stats.todayUsers)}
-          hint="匿名瀏覽器 ID（當日）"
+          hint={t.admin.kpiTodayUsersHint}
         />
         <Kpi
-          title="總嘗試次數"
+          title={t.admin.kpiTotalAttempts}
           value={String(stats.totalSessions)}
-          hint="所有遊戲累計局數"
+          hint={t.admin.kpiTotalAttemptsHint}
         />
         <Kpi
-          title="最耗時遊戲"
-          value={stats.mostTimeSpentGame?.label ?? "—"}
+          title={t.admin.kpiMostTime}
+          value={
+            stats.mostTimeSpentGame
+              ? GAME_LABELS[stats.mostTimeSpentGame.gameId]
+              : "—"
+          }
           hint={
             stats.mostTimeSpentGame
               ? formatDuration(stats.mostTimeSpentGame.totalDurationMs)
-              : "尚無資料"
+              : t.admin.kpiNoData
           }
         />
         <Kpi
-          title="最多嘗試"
-          value={stats.mostAttemptedGame?.label ?? "—"}
+          title={t.admin.kpiMostAttempts}
+          value={
+            stats.mostAttemptedGame
+              ? GAME_LABELS[stats.mostAttemptedGame.gameId]
+              : "—"
+          }
           hint={
             stats.mostAttemptedGame
-              ? `${stats.mostAttemptedGame.attempts} 局`
-              : "尚無資料"
+              ? `${stats.mostAttemptedGame.attempts} ${t.admin.sessions}`
+              : t.admin.kpiNoData
           }
         />
       </div>
@@ -188,23 +190,23 @@ export function AdminDashboard() {
       {stats.totalSessions === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/15 bg-slate-900/50 px-6 py-16 text-center">
           <p className="font-[family-name:var(--font-display)] text-xl text-white">
-            尚無資料
+            {t.admin.emptyTitle}
           </p>
           <p className="mt-2 text-sm text-slate-400">
-            請先到{" "}
+            {t.admin.emptyHintBefore}{" "}
             <a
               href="/play"
               className="text-cyan-300 underline underline-offset-2"
             >
-              前台遊戲
+              {t.admin.emptyHintLink}
             </a>{" "}
-            完成一局
+            {t.admin.emptyHintAfter}
           </p>
         </div>
       ) : (
         <>
           <div className="grid gap-6 lg:grid-cols-2">
-            <ChartCard title="各遊戲嘗試次數">
+            <ChartCard title={t.admin.chartAttempts}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={attemptsData}>
                   <CartesianGrid
@@ -214,7 +216,11 @@ export function AdminDashboard() {
                   <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
                   <YAxis allowDecimals={false} stroke="#94a3b8" fontSize={12} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="attempts" name="嘗試次數" radius={[6, 6, 0, 0]}>
+                  <Bar
+                    dataKey="attempts"
+                    name={t.admin.attempts}
+                    radius={[6, 6, 0, 0]}
+                  >
                     {attemptsData.map((entry) => (
                       <Cell key={entry.name} fill={entry.fill} />
                     ))}
@@ -223,7 +229,7 @@ export function AdminDashboard() {
               </ResponsiveContainer>
             </ChartCard>
 
-            <ChartCard title="各遊戲累計遊玩時間（分鐘）">
+            <ChartCard title={t.admin.chartDuration}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={durationData}>
                   <CartesianGrid
@@ -233,7 +239,11 @@ export function AdminDashboard() {
                   <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
                   <YAxis stroke="#94a3b8" fontSize={12} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="minutes" name="分鐘" radius={[6, 6, 0, 0]}>
+                  <Bar
+                    dataKey="minutes"
+                    name={t.admin.minutes}
+                    radius={[6, 6, 0, 0]}
+                  >
                     {durationData.map((entry) => (
                       <Cell key={entry.name} fill={entry.fill} />
                     ))}
@@ -242,7 +252,7 @@ export function AdminDashboard() {
               </ResponsiveContainer>
             </ChartCard>
 
-            <ChartCard title="每日活躍用戶數">
+            <ChartCard title={t.admin.chartDaily}>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={dailyData}>
                   <CartesianGrid stroke="rgba(148,163,184,0.15)" />
@@ -253,7 +263,7 @@ export function AdminDashboard() {
                   <Line
                     type="monotone"
                     dataKey="users"
-                    name="用戶數"
+                    name={t.admin.users}
                     stroke="#34d399"
                     strokeWidth={2}
                     dot={{ r: 3, fill: "#34d399" }}
@@ -261,7 +271,7 @@ export function AdminDashboard() {
                   <Line
                     type="monotone"
                     dataKey="sessions"
-                    name="局數"
+                    name={t.admin.sessions}
                     stroke="#22d3ee"
                     strokeWidth={2}
                     strokeDasharray="4 4"
@@ -271,7 +281,7 @@ export function AdminDashboard() {
               </ResponsiveContainer>
             </ChartCard>
 
-            <ChartCard title="性別分布">
+            <ChartCard title={t.admin.chartGender}>
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
                   <Pie
@@ -297,14 +307,17 @@ export function AdminDashboard() {
                   </Pie>
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    formatter={(value) => [String(value ?? 0), "人數"]}
+                    formatter={(value) => [
+                      String(value ?? 0),
+                      t.admin.people,
+                    ]}
                   />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </ChartCard>
 
-            <ChartCard title="年齡區間">
+            <ChartCard title={t.admin.chartAge}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={stats.ageDistribution}>
                   <CartesianGrid
@@ -316,7 +329,7 @@ export function AdminDashboard() {
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar
                     dataKey="count"
-                    name="人數"
+                    name={t.admin.people}
                     fill={AGE_COLOR}
                     radius={[6, 6, 0, 0]}
                   />
@@ -324,7 +337,7 @@ export function AdminDashboard() {
               </ResponsiveContainer>
             </ChartCard>
 
-            <ChartCard title="主要表情">
+            <ChartCard title={t.admin.chartExpression}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart
                   data={expressionData}
@@ -344,14 +357,14 @@ export function AdminDashboard() {
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={48}
+                    width={72}
                     stroke="#94a3b8"
                     fontSize={12}
                   />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar
                     dataKey="count"
-                    name="次數"
+                    name={t.admin.times}
                     fill={EXPRESSION_COLOR}
                     radius={[0, 6, 6, 0]}
                   />
@@ -362,17 +375,17 @@ export function AdminDashboard() {
 
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60">
             <div className="border-b border-white/5 px-4 py-3 text-sm font-medium text-slate-200">
-              遊戲摘要
+              {t.admin.gameSummary}
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-slate-950/60 text-xs uppercase tracking-wide text-slate-400">
                   <tr>
-                    <th className="px-4 py-3">遊戲</th>
-                    <th className="px-4 py-3">嘗試次數</th>
-                    <th className="px-4 py-3">累計時間</th>
-                    <th className="px-4 py-3">獨立玩家</th>
-                    <th className="px-4 py-3">平均得分</th>
+                    <th className="px-4 py-3">{t.admin.colGame}</th>
+                    <th className="px-4 py-3">{t.admin.colAttempts}</th>
+                    <th className="px-4 py-3">{t.admin.colDuration}</th>
+                    <th className="px-4 py-3">{t.admin.colPlayers}</th>
+                    <th className="px-4 py-3">{t.admin.colAvgScore}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -382,7 +395,7 @@ export function AdminDashboard() {
                       className="border-t border-white/5 text-slate-200"
                     >
                       <td className="px-4 py-3 font-medium text-white">
-                        {g.label}
+                        {GAME_LABELS[g.gameId]}
                       </td>
                       <td className="px-4 py-3">{g.attempts}</td>
                       <td className="px-4 py-3">
@@ -401,19 +414,19 @@ export function AdminDashboard() {
 
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60">
             <div className="border-b border-white/5 px-4 py-3 text-sm font-medium text-slate-200">
-              最近 Sessions
+              {t.admin.recentSessions}
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-slate-950/60 text-xs uppercase tracking-wide text-slate-400">
                   <tr>
-                    <th className="px-4 py-3">時間</th>
-                    <th className="px-4 py-3">遊戲</th>
-                    <th className="px-4 py-3">年齡</th>
-                    <th className="px-4 py-3">性別</th>
-                    <th className="px-4 py-3">表情</th>
-                    <th className="px-4 py-3">時長</th>
-                    <th className="px-4 py-3">得分</th>
+                    <th className="px-4 py-3">{t.admin.colTime}</th>
+                    <th className="px-4 py-3">{t.admin.colGame}</th>
+                    <th className="px-4 py-3">{t.admin.colAge}</th>
+                    <th className="px-4 py-3">{t.admin.colGender}</th>
+                    <th className="px-4 py-3">{t.admin.colExpression}</th>
+                    <th className="px-4 py-3">{t.admin.colLength}</th>
+                    <th className="px-4 py-3">{t.admin.colScore}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -423,17 +436,17 @@ export function AdminDashboard() {
                       className="border-t border-white/5 text-slate-200"
                     >
                       <td className="px-4 py-3 whitespace-nowrap text-slate-400">
-                        {new Date(s.createdAt).toLocaleString()}
+                        {new Date(s.createdAt).toLocaleString(dateLocale)}
                       </td>
                       <td className="px-4 py-3">
                         {GAME_LABELS[s.gameId] ?? s.gameId}
                       </td>
                       <td className="px-4 py-3">{s.age}</td>
                       <td className="px-4 py-3">
-                        {s.gender === "male" ? "男性" : "女性"}
+                        {s.gender === "male" ? t.common.male : t.common.female}
                       </td>
                       <td className="px-4 py-3">
-                        {EXPRESSION_LABELS[s.dominantExpression] ??
+                        {t.expressions[s.dominantExpression] ??
                           s.dominantExpression}
                       </td>
                       <td className="px-4 py-3">
