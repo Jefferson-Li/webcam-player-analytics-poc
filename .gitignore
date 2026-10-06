@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
+/blob-report
+/cypress/videos
+/cypress/screenshots
 
 # next.js
 /.next/
@@ -19,23 +24,135 @@
 
 # production
 /build
+/dist
+standalone/
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# debug / logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+logs/
 
-# env files (can opt-in for committing if needed)
-.env*
+# env & secrets (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.jks
+*.kdbx
+id_rsa*
+id_dsa*
+id_ed25519*
+*.keystore
+*.mobileprovision
+credentials.json
+**/credentials*.json
+**/secrets/**
+**/private/**
+**/certs/**
+**/certificates/**
+**/service-account*.json
+**/gcp-*.json
+**/firebase-adminsdk*.json
+.npmrc
+.auth/
+.netrc
+.aws/
+.gcloud/
+auth.json
+token.json
+*secret*
+*secrets*
+!*secret*.md
+!*secrets*.md
 
-# vercel
+# tokens / session dumps / HAR with auth headers
+*.token
+*.tokens
+cookies.txt
+*.har
+sessions*.json
+session-dump*
+players*.json
+users-export*
+analytics*.json
+analytics-dump*
+*.csv
+*.tsv
+*.sql
+*.dump
+*.bak
+*.backup
+
+# local / personal data stores
+/data/
+/uploads/
+/tmp/
+/var/
+*.sqlite
+*.sqlite3
+*.db
+*.rdb
+
+# webcam / media / face captures (PII risk)
+*.webm
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.m4v
+*.wav
+*.mp3
+face-*.jpg
+face-*.jpeg
+face-*.png
+face-*.webp
+capture-*.jpg
+capture-*.jpeg
+capture-*.png
+webcam-*.jpg
+webcam-*.png
+captures/
+recordings/
+screenshots/
+/public/uploads/
+/public/captures/
+/public/recordings/
+/public/faces/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# vercel / cloud / local tooling
 .vercel
+.turbo
+.cache/
+
+# docker local overrides (may contain secrets)
+docker-compose.override.yml
+docker-compose.*.local.yml
+.env.docker
+.env.docker.*
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# face-api vendor weights (copied from node_modules via npm run copy:models)
+/public/models/*
+!/public/models/.gitkeep
+*.bin

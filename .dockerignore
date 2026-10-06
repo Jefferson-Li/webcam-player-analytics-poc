@@ -1,0 +1,17 @@
+Dockerfile
+.dockerignore
+docker-compose*.yml
+.git
+.gitignore
+.next
+node_modules
+npm-debug.log*
+README.md
+AGENTS.md
+CLAUDE.md
+.eslintrc*
+eslint.config.*
+*.md
+.DS_Store
+.vercel
+coverage

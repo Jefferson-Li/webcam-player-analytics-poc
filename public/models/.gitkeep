@@ -1,0 +1,2 @@
+# Face-api model weights are copied from node_modules (see npm run copy:models).
+# Do not commit vendor binaries here.
